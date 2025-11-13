@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Online Doctor Appointment System",
+  "description": "A cloud-based web application that enables patients to book appointments with doctors quickly and efficiently. It features separate dashboards for patients and doctors, and an AI Health Assistant powered by Gemini to help patients describe their symptoms.",
+  "requestFramePermissions": []
+}
