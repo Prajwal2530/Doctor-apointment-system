@@ -68,9 +68,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setToken(data.token);
       setUser(data.user);
       return null; // No error
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      return 'An unexpected error occurred during login.';
+      if (error.name === 'TypeError' || error.message === 'Failed to fetch') {
+         return 'Unable to connect to the server. Please ensure the backend is running.';
+      }
+      return error.message || 'An unexpected error occurred during login.';
     }
   };
 
@@ -91,18 +94,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setToken(data.token);
       setUser(data.user);
       return null; // No error
-    } catch (error) {
+    } catch (error: any) {
        console.error('Registration failed:', error);
-       return 'An unexpected error occurred during registration.';
+       if (error.name === 'TypeError' || error.message === 'Failed to fetch') {
+          return 'Unable to connect to the server. Please ensure the backend is running.';
+       }
+       return error.message || 'An unexpected error occurred during registration.';
     }
   };
 
   const logout = async () => {
     try {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, { 
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        if (token) {
+            await fetch(`${API_BASE_URL}/api/auth/logout`, { 
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+            });
+        }
     } catch (error) {
         console.error("Logout failed on server, logging out client-side.", error);
     } finally {

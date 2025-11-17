@@ -17,7 +17,11 @@ const filterOptions = {
   facility: ['Apollo Hospital', 'Other Clinics']
 };
 
-const PatientDashboard: React.FC = () => {
+interface PatientDashboardProps {
+  onLoginRequired?: () => void;
+}
+
+const PatientDashboard: React.FC<PatientDashboardProps> = ({ onLoginRequired }) => {
   const { user, token } = useAuth();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -49,30 +53,35 @@ const PatientDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!token) {
-        setIsLoading(false);
-        return;
-      };
       setIsLoading(true);
       try {
-        const authHeader = { 'Authorization': `Bearer ${token}` };
-
-        const [doctorsRes, appointmentsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/doctors`),
-          fetch(`${API_BASE_URL}/api/appointments`, { headers: authHeader })
-        ]);
+        // Fetch doctors (public endpoint)
+        const doctorsRes = await fetch(`${API_BASE_URL}/api/doctors`);
         
         if (doctorsRes.ok) {
-          const doctorsData = await doctorsRes.json();
-          setDoctors(doctorsData);
+            const doctorsData = await doctorsRes.json();
+            setDoctors(doctorsData);
+        } else {
+            console.error("Failed to fetch doctors");
+            setDoctors([]);
         }
         
-        if (appointmentsRes.ok) {
-          const appointmentsData = await appointmentsRes.json();
-          setAppointments(appointmentsData);
+        // Only fetch appointments if logged in
+        if (token) {
+          const appointmentsRes = await fetch(`${API_BASE_URL}/api/appointments`, { 
+              headers: { 'Authorization': `Bearer ${token}` }
+           });
+           if (appointmentsRes.ok) {
+            const appointmentsData = await appointmentsRes.json();
+            setAppointments(appointmentsData);
+          } else {
+            console.error("Failed to fetch appointments");
+            setAppointments([]);
+          }
         }
+
       } catch (error) {
-        console.error("Failed to fetch data", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -103,9 +112,16 @@ const PatientDashboard: React.FC = () => {
       
       if (consultationModes.length > 0 && !consultationModes.some(mode => doctor.consultationModes.includes(mode as any))) return false;
       if (gender.length > 0 && !gender.includes(doctor.gender)) return false;
+      
+      // Fixed logic: Use OR condition (some) instead of restrictive AND
       if (facility.length > 0) {
-        if (facility.includes('Apollo Hospital') && doctor.facility !== 'Apollo Hospital') return false;
-        if (facility.includes('Other Clinics') && doctor.facility === 'Apollo Hospital') return false;
+        const isApollo = doctor.facility === 'Apollo Hospital';
+        const matches = facility.some(f => {
+          if (f === 'Apollo Hospital') return isApollo;
+          if (f === 'Other Clinics') return !isApollo;
+          return false;
+        });
+        if (!matches) return false;
       }
 
       if (languages.length > 0 && !languages.some(lang => doctor.languages.includes(lang))) return false;
@@ -137,6 +153,10 @@ const PatientDashboard: React.FC = () => {
 
 
   const openBookingModal = (doctor: Doctor) => {
+    if (!user && onLoginRequired) {
+      onLoginRequired();
+      return;
+    }
     setSelectedDoctor(doctor);
     setBookingModalOpen(true);
   };
@@ -261,38 +281,41 @@ const PatientDashboard: React.FC = () => {
         </div>
       </Card>
       
-      <Card title="My Appointments">
-        {appointments.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="p-3 font-semibold text-gray-600">Doctor</th>
-                  <th className="p-3 font-semibold text-gray-600">Date & Time</th>
-                  <th className="p-3 font-semibold text-gray-600">Status</th>
-                  <th className="p-3 font-semibold text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(apt => (
-                  <tr key={apt.id} className="border-b">
-                    <td className="p-3">{apt.doctorName} <span className="text-sm text-gray-500">({apt.doctorSpecialization})</span></td>
-                    <td className="p-3">{apt.date} at {apt.time}</td>
-                    <td className={`p-3 font-semibold ${getStatusColor(apt.status)}`}>{apt.status}</td>
-                    <td className="p-3">
-                      {apt.status === AppointmentStatus.Pending && (
-                        <Button variant="danger" onClick={() => cancelAppointment(apt.id)} className="text-xs px-2 py-1">Cancel</Button>
-                      )}
-                    </td>
+      {/* Only show appointments if user is logged in */}
+      {user && (
+        <Card title="My Appointments">
+          {appointments.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="p-3 font-semibold text-gray-600">Doctor</th>
+                    <th className="p-3 font-semibold text-gray-600">Date & Time</th>
+                    <th className="p-3 font-semibold text-gray-600">Status</th>
+                    <th className="p-3 font-semibold text-gray-600">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-500">You have no upcoming appointments.</p>
-        )}
-      </Card>
+                </thead>
+                <tbody>
+                  {appointments.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(apt => (
+                    <tr key={apt.id} className="border-b">
+                      <td className="p-3">{apt.doctorName} <span className="text-sm text-gray-500">({apt.doctorSpecialization})</span></td>
+                      <td className="p-3">{apt.date} at {apt.time}</td>
+                      <td className={`p-3 font-semibold ${getStatusColor(apt.status)}`}>{apt.status}</td>
+                      <td className="p-3">
+                        {apt.status === AppointmentStatus.Pending && (
+                          <Button variant="danger" onClick={() => cancelAppointment(apt.id)} className="text-xs px-2 py-1">Cancel</Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500">You have no upcoming appointments.</p>
+          )}
+        </Card>
+      )}
       
       <div className="flex flex-col md:flex-row gap-8 items-start">
         <aside className="w-full md:w-1/4 lg:w-1/5">
@@ -342,7 +365,8 @@ const PatientDashboard: React.FC = () => {
         </main>
       </div>
       
-      {selectedDoctor && (
+      {/* Only render booking modal if user is logged in (double check for safety, though openBookingModal handles it) */}
+      {selectedDoctor && user && (
         <Modal isOpen={isBookingModalOpen} onClose={closeBookingModal} title={`Book Appointment with ${selectedDoctor.name}`}>
           <form onSubmit={handleBooking} className="space-y-4">
             <div>

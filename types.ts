@@ -1,6 +1,7 @@
 export enum Role {
   Patient = 'patient',
   Doctor = 'doctor',
+  Admin = 'admin',
 }
 
 export enum AppointmentStatus {
@@ -34,6 +35,10 @@ export interface Doctor extends User {
 
 export interface Patient extends User {
   role: Role.Patient;
+}
+
+export interface Admin extends User {
+  role: Role.Admin;
 }
 
 export interface Appointment {

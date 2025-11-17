@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button';
@@ -5,7 +6,11 @@ import Card from '../components/common/Card';
 import Spinner from '../components/common/Spinner';
 import { StethoscopeIcon } from '../components/icons/StethoscopeIcon';
 
-const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  onBack?: () => void;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,7 +72,15 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4 relative">
+      {onBack && (
+        <div className="absolute top-4 left-4">
+            <Button variant="secondary" onClick={onBack}>
+                &larr; Back to Home
+            </Button>
+        </div>
+      )}
+
       <div className="flex items-center space-x-3 mb-8">
         <StethoscopeIcon className="w-12 h-12 text-primary"/>
         <h1 className="text-4xl font-bold text-dark">
@@ -79,7 +92,7 @@ const LoginPage: React.FC = () => {
           <h2 className="text-2xl font-semibold text-center text-gray-700">
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
-          {error && <p className="text-danger text-center">{error}</p>}
+          {error && <p className="text-danger text-center bg-red-50 p-2 rounded border border-red-100 text-sm">{error}</p>}
           
           {!isLogin && (
             <div>
@@ -99,7 +112,7 @@ const LoginPage: React.FC = () => {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value.trim())}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
               required
             />
@@ -121,9 +134,11 @@ const LoginPage: React.FC = () => {
             )}
           </div>
           
-          <Button type="submit" className="w-full flex justify-center" disabled={loading}>
-            {loading ? <Spinner /> : (isLogin ? 'Login' : 'Register')}
-          </Button>
+          <div className="space-y-3">
+            <Button type="submit" className="w-full flex justify-center" disabled={loading}>
+              {loading ? <Spinner /> : (isLogin ? 'Login' : 'Register')}
+            </Button>
+          </div>
           
           <p className="text-center text-sm text-gray-600">
             {isLogin ? "Don't have an account?" : 'Already have an account?'}

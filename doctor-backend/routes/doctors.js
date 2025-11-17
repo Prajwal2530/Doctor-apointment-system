@@ -1,13 +1,13 @@
+
 import express from 'express';
 import User from '../models/User.js';
 
 const router = express.Router();
 
-// This is the mock doctor data that will be used to seed the database.
-// In a real application, this would be managed through an admin panel.
-const DOCTORS_SEED_DATA = [
+// This is the mock doctor data used by server.js to seed the database.
+export const DOCTORS_SEED_DATA = [
     {
-        name: 'Dr. shind',
+        name: 'Dr. Mohan S Shendre',
         email: 'm.shendre@clinic.com',
         password: 'password123',
         role: 'doctor',
@@ -78,15 +78,8 @@ const DOCTORS_SEED_DATA = [
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        const doctorsCount = await User.countDocuments({ role: 'doctor' });
-        
-        if (doctorsCount === 0) {
-            // If no doctors exist, seed them from the data above
-            console.log('No doctors found. Seeding database...');
-            await User.insertMany(DOCTORS_SEED_DATA);
-            console.log('Doctors seeded successfully.');
-        }
-
+        // We rely on server.js to seed the data now.
+        // Just fetch what exists.
         const doctors = await User.find({ role: 'doctor' });
         res.json(doctors);
     } catch (error) {

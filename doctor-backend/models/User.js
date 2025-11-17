@@ -1,3 +1,4 @@
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
@@ -11,6 +12,8 @@ const userSchema = mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true, // Automatically convert to lowercase
+      trim: true,      // Automatically remove whitespace
     },
     password: {
       type: String,
@@ -19,7 +22,7 @@ const userSchema = mongoose.Schema(
     role: {
       type: String,
       required: true,
-      enum: ['patient', 'doctor'],
+      enum: ['patient', 'doctor', 'admin'],
       default: 'patient',
     },
     // Doctor-specific fields
@@ -44,11 +47,14 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 userSchema.pre('save', async function (next) {
+  // FIX: Added return to prevent execution if password is not modified
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
+  console.log(`🔐 Hashing password for user: ${this.email}`);
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 
