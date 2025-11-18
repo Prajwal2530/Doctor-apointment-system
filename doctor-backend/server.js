@@ -15,7 +15,12 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+// Allow all origins for simplicity in deployment
+app.use(cors({
+  origin: '*',
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
@@ -33,42 +38,39 @@ const PORT = process.env.PORT || 5000;
 connectDB().then(async () => {
   try {
     console.log('--- DATABASE CONNECTION SUCCESSFUL ---');
-    console.log('--- STARTING USER SEEDING ---');
+    console.log('--- CHECKING DATA INTEGRITY ---');
     
-    // 1. RESET ADMIN ACCOUNT
-    // Delete existing admin to ensure a clean slate
-    await User.deleteOne({ email: 'admin@medibook.com' });
+    // 1. ENSURE ADMIN ACCOUNT EXISTS
+    const adminEmail = 'admin@medibook.com';
+    const adminExists = await User.findOne({ email: adminEmail });
     
-    // Create fresh admin
-    const admin = new User({
-      name: 'Super Admin',
-      email: 'admin@medibook.com',
-      password: 'admin123', // Will be hashed by User model pre-save hook
-      role: 'admin'
-    });
-    await admin.save();
-    console.log('✅ Admin Access Configured: admin@medibook.com / admin123');
-
-    // 2. RESET DOCTOR ACCOUNTS
-    // Get list of seed emails
-    const doctorEmails = DOCTORS_SEED_DATA.map(d => d.email);
-    
-    // Remove existing seed doctors to prevent duplicates or stale data
-    await User.deleteMany({ email: { $in: doctorEmails } });
-    
-    // Re-create doctors
-    for (const docData of DOCTORS_SEED_DATA) {
-        // User.create triggers the pre-save hook automatically
-        await User.create(docData);
+    if (!adminExists) {
+        const admin = new User({
+          name: 'Super Admin',
+          email: adminEmail,
+          password: 'admin123',
+          role: 'admin'
+        });
+        await admin.save();
+        console.log('✅ Admin Account Created: admin@medibook.com / admin123');
+    } else {
+        console.log('✅ Admin Account Verified (Preserved)');
     }
-    console.log('✅ Seed Doctors Reset. Password for all: password123');
+
+    // 2. SEED DOCTORS ONLY IF NONE EXIST
+    const doctorCount = await User.countDocuments({ role: 'doctor' });
     
-    console.log('--- SEEDING COMPLETE ---');
+    if (doctorCount === 0) {
+        console.log('--- SEEDING DOCTORS (DB is empty) ---');
+        await User.create(DOCTORS_SEED_DATA);
+        console.log(`✅ Seeded ${DOCTORS_SEED_DATA.length} doctors.`);
+    } else {
+        console.log(`✅ Found ${doctorCount} doctors in database. Skipping seed to preserve Admin changes.`);
+    }
     
     // 3. DISPLAY CURRENT USER INVENTORY
-    // This helps developers verify that manually added users (like your new doctor) are actually saved.
     const allUsers = await User.find({}, 'name email role');
-    console.log('\n📊 CURRENT USER INVENTORY (DATABASE SNAPSHOT):');
+    console.log('\n📊 CURRENT USER INVENTORY:');
     const tableData = allUsers.map(u => ({ 
         Name: u.name, 
         Email: u.email, 
@@ -78,7 +80,6 @@ connectDB().then(async () => {
     console.log('---------------------------------------------------------------\n');
 
     // 4. START SERVER
-    // Only start listening after DB and Seed are ready to avoid race conditions
     app.listen(PORT, console.log(`🚀 Server running on port ${PORT}`));
     
   } catch (error) {
