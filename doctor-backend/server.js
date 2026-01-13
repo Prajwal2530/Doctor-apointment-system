@@ -42,7 +42,7 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 // Connect to database THEN seed THEN start server
 connectDB().then(async () => {

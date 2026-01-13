@@ -19,7 +19,6 @@ services:
 staticSites:
   # FRONTEND SERVICE
   - name: medibook-frontend
-    runtime: static
     rootDir: .
     buildCommand: npm install && npm run build
     publishDir: dist
