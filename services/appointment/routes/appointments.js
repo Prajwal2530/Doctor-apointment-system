@@ -5,6 +5,34 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
+router.get('/stats', protect, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(401).json({ message: 'Not authorized as admin' });
+    }
+    try {
+        const stats = await Appointment.aggregate([
+            {
+                $group: {
+                    _id: '$doctorId',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const statsMap = stats.reduce((acc, curr) => {
+            // Ensure ID is string to match frontend doctor.id
+            const id = curr._id.toString();
+            acc[id] = curr.count;
+            return acc;
+        }, {});
+
+        res.json(statsMap);
+    } catch (error) {
+        console.error("Error fetching stats:", error);
+        res.status(500).json({ message: 'Server Error fetching stats' });
+    }
+});
+
 const protect = async (req, res, next) => {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
