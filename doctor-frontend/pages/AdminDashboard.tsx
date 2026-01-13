@@ -14,6 +14,7 @@ const AdminDashboard: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'doctors' | 'users'>('doctors');
+    const [appointmentStats, setAppointmentStats] = useState<Record<string, number>>({});
 
     // Doctor Modal State
     const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
@@ -38,6 +39,15 @@ const AdminDashboard: React.FC = () => {
             if (!res.ok) throw new Error('Failed to fetch users');
             const data = await res.json();
             setUsers(data);
+
+            // Fetch Appointment Stats
+            const statsRes = await fetch(`${API_BASE_URL}/api/appointments/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                setAppointmentStats(statsData);
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -61,7 +71,7 @@ const AdminDashboard: React.FC = () => {
                 body: JSON.stringify({ role: newRole })
             });
             if (!res.ok) throw new Error('Failed to update role');
-            await fetchUsers(); 
+            await fetchUsers();
         } catch (err: any) {
             alert(`Error: ${err.message}`);
         }
@@ -119,10 +129,10 @@ const AdminDashboard: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            const url = isEditing 
+            const url = isEditing
                 ? `${API_BASE_URL}/api/admin/doctors/${selectedDoctorId}`
                 : `${API_BASE_URL}/api/admin/add-doctor`;
-            
+
             const method = isEditing ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
@@ -145,7 +155,7 @@ const AdminDashboard: React.FC = () => {
 
             alert(isEditing ? 'Doctor updated successfully!' : 'Doctor added successfully!');
             setIsDoctorModalOpen(false);
-            await fetchUsers(); 
+            await fetchUsers();
         } catch (err: any) {
             alert(`Error: ${err.message}`);
         } finally {
@@ -158,7 +168,7 @@ const AdminDashboard: React.FC = () => {
     const admins = users.filter(u => u.role === Role.Admin);
 
     const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary transition-colors duration-200";
-    
+
     if (isLoading) return <div className="flex justify-center items-center min-h-[60vh]"><Spinner /></div>;
     if (error) return <p className="text-danger text-center p-4">{error}</p>;
 
@@ -167,13 +177,13 @@ const AdminDashboard: React.FC = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-dark">Admin Dashboard</h1>
                 <div className="flex space-x-2">
-                    <Button 
-                        variant={activeTab === 'doctors' ? 'primary' : 'secondary'} 
+                    <Button
+                        variant={activeTab === 'doctors' ? 'primary' : 'secondary'}
                         onClick={() => setActiveTab('doctors')}>
                         Manage Doctors
                     </Button>
-                    <Button 
-                        variant={activeTab === 'users' ? 'primary' : 'secondary'} 
+                    <Button
+                        variant={activeTab === 'users' ? 'primary' : 'secondary'}
                         onClick={() => setActiveTab('users')}>
                         All Users
                     </Button>
@@ -188,14 +198,14 @@ const AdminDashboard: React.FC = () => {
                             + Add New Doctor
                         </Button>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {doctors.map(doctor => (
                             <Card key={doctor.id} className="flex flex-col h-full">
                                 <div className="flex items-start gap-4 mb-4">
-                                    <img 
-                                        src={doctor.image || DOCTOR_PLACEHOLDER_IMAGE} 
-                                        alt={doctor.name} 
+                                    <img
+                                        src={doctor.image || DOCTOR_PLACEHOLDER_IMAGE}
+                                        alt={doctor.name}
                                         className="w-16 h-16 rounded-full object-cover bg-gray-200"
                                     />
                                     <div>
@@ -208,6 +218,7 @@ const AdminDashboard: React.FC = () => {
                                     <p><strong>Facility:</strong> {doctor.facility || 'N/A'}</p>
                                     <p><strong>Experience:</strong> {doctor.experience} years</p>
                                     <p><strong>Fees:</strong> ₹{doctor.fees}</p>
+                                    <p className="pt-2 font-bold text-primary">Total Appointments: {appointmentStats[doctor.id] || 0}</p>
                                 </div>
                                 <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
                                     <Button variant="secondary" className="text-xs px-3 py-1" onClick={() => openEditDoctorModal(doctor)}>
@@ -224,7 +235,7 @@ const AdminDashboard: React.FC = () => {
             )}
 
             {activeTab === 'users' && (
-                 <Card title="All Users Management">
+                <Card title="All Users Management">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-gray-50">
@@ -262,9 +273,9 @@ const AdminDashboard: React.FC = () => {
                 </Card>
             )}
 
-            <Modal 
-                isOpen={isDoctorModalOpen} 
-                onClose={() => setIsDoctorModalOpen(false)} 
+            <Modal
+                isOpen={isDoctorModalOpen}
+                onClose={() => setIsDoctorModalOpen(false)}
                 title={isEditing ? "Edit Doctor Details" : "Add New Doctor"}
             >
                 <form onSubmit={handleSaveDoctor} className="space-y-4">
@@ -277,23 +288,23 @@ const AdminDashboard: React.FC = () => {
                             <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
                             <input name="email" type="email" value={doctorForm.email} onChange={handleDoctorFormChange} required className={inputClass} />
                         </div>
-                        
+
                         <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
                                 {isEditing ? 'New Password (Optional)' : 'Password'}
                             </label>
-                            <input 
-                                name="password" 
-                                type="password" 
-                                value={doctorForm.password} 
-                                onChange={handleDoctorFormChange} 
+                            <input
+                                name="password"
+                                type="password"
+                                value={doctorForm.password}
+                                onChange={handleDoctorFormChange}
                                 placeholder={isEditing ? "Leave blank to keep current" : ""}
-                                required={!isEditing} 
-                                className={inputClass} 
+                                required={!isEditing}
+                                className={inputClass}
                             />
                         </div>
 
-                         <div>
+                        <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Specialization</label>
                             <input name="specialization" value={doctorForm.specialization} onChange={handleDoctorFormChange} required className={inputClass} />
                         </div>

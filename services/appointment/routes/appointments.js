@@ -112,4 +112,31 @@ router.patch('/:id/status', protect, async (req, res) => {
     }
 });
 
+router.get('/stats', protect, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(401).json({ message: 'Not authorized as admin' });
+    }
+    try {
+        const stats = await Appointment.aggregate([
+            {
+                $group: {
+                    _id: '$doctorId',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Convert array [{_id: 'docId', count: 5}] to object {'docId': 5}
+        const statsMap = stats.reduce((acc, curr) => {
+            acc[curr._id] = curr.count;
+            return acc;
+        }, {});
+
+        res.json(statsMap);
+    } catch (error) {
+        console.error("Error fetching stats:", error);
+        res.status(500).json({ message: 'Server Error fetching stats' });
+    }
+});
+
 export default router;
