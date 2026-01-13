@@ -3,8 +3,8 @@ services:
   - type: web
     name: medibook-backend
     runtime: node
-    region: singapore # Optional
-    plan: free # Optional
+    region: singapore
+    plan: free
     rootDir: doctor-backend
     buildCommand: npm install
     startCommand: node server.js
@@ -19,7 +19,7 @@ services:
 staticSites:
   # FRONTEND SERVICE
   - name: medibook-frontend
-    rootDir: .
+    rootDir: doctor-frontend
     buildCommand: npm install && npm run build
     publishDir: dist
     envVars:
