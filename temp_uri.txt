@@ -1,0 +1,1 @@
+MONGO_URI=mongodb+srv://prajwalck2005_db_user:ZsgmB6uHNobkr9U0@cluster1.zikvtzc.mongodb.net/doctorAppDB?retryWrites=true&w=majority&appName=Cluster1

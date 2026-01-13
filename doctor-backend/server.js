@@ -10,6 +10,10 @@ import authRoutes from './routes/auth.js';
 import doctorRoutes from './routes/doctors.js';
 import appointmentRoutes from './routes/appointments.js';
 import adminRoutes from './routes/admin.js';
+import client from "prom-client";
+
+client.collectDefaultMetrics(); // CPU, memory, etc.
+
 
 dotenv.config();
 
@@ -27,6 +31,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/admin', adminRoutes);
+
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", client.register.contentType);
+  res.end(await client.register.metrics());
+});
+
 
 app.get('/', (req, res) => {
   res.send('API is running...');

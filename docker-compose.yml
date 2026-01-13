@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  gateway-service:
+    build: ./services/gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      - DOCTOR_SERVICE_URL=http://doctor-service:5002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:5003
+      - ADMIN_SERVICE_URL=http://admin-service:5004
+      - PORT=5000
+    depends_on:
+      - auth-service
+      - doctor-service
+      - appointment-service
+      - admin-service
+
+  auth-service:
+    build: ./services/auth
+    ports:
+      - "5001:5001"
+    dns:
+      - 8.8.8.8
+    environment:
+      - PORT=5001
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+
+  doctor-service:
+    build: ./services/doctor
+    ports:
+      - "5002:5002"
+    dns:
+      - 8.8.8.8
+    environment:
+      - PORT=5002
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+
+  appointment-service:
+    build: ./services/appointment
+    ports:
+      - "5003:5003"
+    dns:
+      - 8.8.8.8
+    environment:
+      - PORT=5003
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+
+  admin-service:
+    build: ./services/admin
+    ports:
+      - "5004:5004"
+    dns:
+      - 8.8.8.8
+    environment:
+      - PORT=5004
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - DOCTOR_SERVICE_URL=http://doctor-service:5002
+
+  frontend:
+    build: .
+    ports:
+      - "80:80"
+    depends_on:
+      - gateway-service
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+networks:
+  default:
+    name: doctor-apt-network
