@@ -3,8 +3,8 @@ services:
   - type: web
     name: medibook-backend
     runtime: node
-    region: singapore # Optional: Choose a region close to your users
-    plan: free # Optional: Explicitly state free plan
+    region: singapore # Optional
+    plan: free # Optional
     rootDir: doctor-backend
     buildCommand: npm install
     startCommand: node server.js
@@ -12,13 +12,13 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        sync: false # User must provide this in dashboard
+        sync: false
       - key: JWT_SECRET
-        sync: false # User must provide this in dashboard
+        sync: false
 
+staticSites:
   # FRONTEND SERVICE
-  - type: static
-    name: medibook-frontend
+  - name: medibook-frontend
     runtime: static
     rootDir: .
     buildCommand: npm install && npm run build
