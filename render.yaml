@@ -15,16 +15,3 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-
-staticSites:
-  # FRONTEND SERVICE
-  - name: medibook-frontend
-    rootDir: doctor-frontend
-    buildCommand: npm install && npm run build
-    publishDir: dist
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: medibook-backend
-          property: url
