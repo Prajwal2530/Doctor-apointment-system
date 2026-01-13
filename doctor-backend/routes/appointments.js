@@ -5,6 +5,33 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
+router.get('/stats', protect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(401).json({ message: 'Not authorized as admin' });
+  }
+  try {
+    const stats = await Appointment.aggregate([
+      {
+        $group: {
+          _id: '$doctorId',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const statsMap = stats.reduce((acc, curr) => {
+      const id = curr._id.toString();
+      acc[id] = curr.count;
+      return acc;
+    }, {});
+
+    res.json(statsMap);
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ message: 'Server Error fetching stats' });
+  }
+});
+
 // Middleware to protect routes
 const protect = async (req, res, next) => {
   let token;
@@ -31,7 +58,7 @@ router.get('/', protect, async (req, res) => {
     const query = req.user.role === 'patient'
       ? { patientId: req.user._id }
       : { doctorId: req.user._id };
-    
+
     const appointments = await Appointment.find(query);
     res.json(appointments);
   } catch (error) {
@@ -94,43 +121,43 @@ router.post('/', protect, async (req, res) => {
 // @route   PATCH /api/appointments/:id/cancel
 // @access  Private
 router.patch('/:id/cancel', protect, async (req, res) => {
-    try {
-        const appointment = await Appointment.findById(req.params.id);
-        if (!appointment) {
-            return res.status(404).json({ message: 'Appointment not found' });
-        }
-        // Ensure the logged in user is the patient for this appointment
-        if (req.user.role !== 'patient' || appointment.patientId.toString() !== req.user._id.toString()) {
-            return res.status(401).json({ message: 'Not authorized' });
-        }
-        appointment.status = 'Cancelled';
-        await appointment.save();
-        res.json(appointment);
-    } catch(error) {
-        res.status(500).json({ message: 'Server Error' });
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
     }
+    // Ensure the logged in user is the patient for this appointment
+    if (req.user.role !== 'patient' || appointment.patientId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+    appointment.status = 'Cancelled';
+    await appointment.save();
+    res.json(appointment);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
 });
 
 // @desc    Update appointment status by doctor
 // @route   PATCH /api/appointments/:id/status
 // @access  Private
 router.patch('/:id/status', protect, async (req, res) => {
-    const { status } = req.body;
-    try {
-        const appointment = await Appointment.findById(req.params.id);
-        if (!appointment) {
-            return res.status(404).json({ message: 'Appointment not found' });
-        }
-        // Ensure the logged in user is the doctor for this appointment
-        if (req.user.role !== 'doctor' || appointment.doctorId.toString() !== req.user._id.toString()) {
-            return res.status(401).json({ message: 'Not authorized' });
-        }
-        appointment.status = status;
-        await appointment.save();
-        res.json(appointment);
-    } catch(error) {
-        res.status(500).json({ message: 'Server Error' });
+  const { status } = req.body;
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
     }
+    // Ensure the logged in user is the doctor for this appointment
+    if (req.user.role !== 'doctor' || appointment.doctorId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+    appointment.status = status;
+    await appointment.save();
+    res.json(appointment);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
 });
 
 export default router;
